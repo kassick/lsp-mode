@@ -293,6 +293,17 @@ parameters."
   "Builds and display the panel buffer"
   ;; TODO: maybe receive accept-fn / cancell-fn / copy-fn as parameters, so we
   ;; can use panel on other contexts...
+  (if (lsp-inline-completion--active-and-visible-p)
+    (progn
+      (message "Cancelling inlnie completion")
+      (lsp-inline-completion-cancel)))
+
+  ;; Maybe use hooks to better integrate with other completions, create a
+  ;; panel-company-integration-mode as we do in inline completions
+  (when (and (bound-and-true-p company-mode)
+             (company--active-p))
+    (company-cancel))
+
   (let ((buf (get-buffer-create (format "*lsp-copilot-panel-results-%s*" completing-buffer-name) )))
     (with-current-buffer buf
       (read-only-mode -1)
@@ -382,6 +393,7 @@ parameters."
   "Use a Completion Panel to provide suggestions at point"
   (interactive)
 
+  (setq lsp-inline-completion--inhibit-timer t)
   (when lsp-inline-completion--idle-timer
     (cancel-timer lsp-inline-completion--idle-timer))
 
