@@ -62,34 +62,6 @@ InlineCompletionItem objects"
 
 ;;;;;; Default UI -- overlay
 
-;; (defvar lsp-inline-completion--setup-map
-;;   (let ((map (make-sparse-map)))
-;;     (lsp-define-conditional-key map
-
-;;     (kbd "C-<return>") lsp-inline-completion-accept "Accept" (lsp-inline-completion--active-and-visible-p)
-;;     [mouse-1] lsp-inline-completion-accept-on-click "Accept" (lsp-inline-completion--active-and-visible-p)
-;;     ;; navigate
-;;     (kbd "C-n") lsp-inline-completion-next "Next" (lsp-inline-completion--active-and-visible-p)
-;;     (kbd "C-p") lsp-inline-completion-prev "Prev" (lsp-inline-completion--active-and-visible-p)
-;;     ;; cancel
-;;     (kbd "C-g") lsp-inline-completion-cancel "Cancel" (lsp-inline-completion--active-and-visible-p)
-;;     (kbd "<escape>") lsp-inline-completion-cancel "Cancel" (lsp-inline-completion--active-and-visible-p)
-;;     (kbd "C-c C-k") lsp-inline-completion-cancel "Cancel" (lsp-inline-completion--active-and-visible-p)
-;;     ;; useful -- recenter without loosing the completion
-;;     (kbd "C-l") recenter-top-bottom "Recenter" (lsp-inline-completion--active-and-visible-p)
-;;     ;; ignore
-;;     [down-mouse-1] ignore "Ignore" (lsp-inline-completion--active-and-visible-p)
-;;     [up-mouse-1] ignore "Ignore" (lsp-inline-completion--active-and-visible-p)
-;;     [mouse-movement] ignore "Ignore (lsp-inline-completion--active-and-visible-p)"
-
-;;     ;; Any other event cancels the overlay and triggers whatever action should be bound
-;;     [t] lsp-inline-completion-cancel-with-input "Cancel, use input" (lsp-inline-completion--active-and-visible-p))
-;;     map)
-;;   "Keymap active when displaying a completion"
-;;   )
-
-
-
 (defvar lsp-inline-completion-active-map
   (let ((map (make-sparse-keymap)))
     ;; accept
