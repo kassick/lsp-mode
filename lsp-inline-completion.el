@@ -470,7 +470,7 @@ lsp-inline-completion-mode is active."
 ;;;###autoload
 (add-hook 'lsp-configure-hook (lambda ()
                                 (when (and lsp-inline-completion-enable
-                                           (lsp-feature? "textdocument/inlinecompletion"))
+                                           (lsp-feature? "textDocument/inlineCompletion"))
                                   (lsp-inline-completion-mode))))
 
 
