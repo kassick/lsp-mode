@@ -85,13 +85,6 @@ InlineCompletionItem objects"
     map)
   "Keymap active when showing inline code suggestions.")
 
-(defcustom lsp-inline-completion-continue-commands '(lsp-inline-completion-next
-                                                     lsp-inline-completion-prev
-                                                     recenter-top-bottom)
-  "A list of commands that should not deactivate the inline overlay."
-  :type '(repeat function)
-  :group 'lsp-mode)
-
 (defface lsp-inline-completion-overlay-face
   '((t :inherit shadow))
   "Face for the inline code suggestions overlay."
