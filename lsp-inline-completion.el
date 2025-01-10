@@ -113,20 +113,6 @@ InlineCompletionItem objects"
     map)
   "Keymap active when showing inline code suggestions.")
 
-(define-minor-mode lsp-inline-completion-showing-mode
-  "Minor mode active when showing a code sugestion"
-  :lighter nil
-
-  (cond
-   (lsp-inline-completion-showing-mode
-    (unless (bound-and-true-p lsp-inline-completion--previous-overriding-map)
-      (setq-local lsp-inline-completion--previous-overriding-map overriding-terminal-local-map))
-    (setq overriding-terminal-local-map lsp-inline-completion-active-map))
-
-   (t
-    (setq overriding-terminal-local-map lsp-inline-completion--previous-overriding-map)
-    (setq-local lsp-inline-completion--previous-overriding-map nil))))
-
 (defcustom lsp-inline-completion-continue-commands '(lsp-inline-completion-next
                                                      lsp-inline-completion-prev
                                                      recenter-top-bottom)
@@ -190,20 +176,14 @@ The functions receive the text range that was updated by the completion."
 
 (defsubst lsp-inline-completion--active-p ()
   "Returns whether we are in an active completion"
-  (bound-and-true-p lsp-inline-completion-showing-mode))
-
-
-(defsubst lsp-inline-completion--active-and-visible-p ()
-  "Return whether we have an active completion and it is being displayed"
-  (and (overlayp lsp-inline-completion--overlay)
-       (lsp-inline-completion--active-p)))
-
+  (overlayp lsp-inline-completion--overlay))
 
 (defun lsp-inline-completion--clear-overlay ()
   "Hide the suggestion overlay."
   (when (overlayp lsp-inline-completion--overlay )
     (delete-overlay lsp-inline-completion--overlay))
-  (setq lsp-inline-completion--overlay nil))
+  (setq lsp-inline-completion--overlay nil)
+  (internal-pop-keymap lsp-inline-completion-active-map 'overriding-terminal-local-map))
 
 
 (defun lsp-inline-completion--get-overlay (beg end)
@@ -212,6 +192,7 @@ The functions receive the text range that was updated by the completion."
 
   (setq lsp-inline-completion--overlay (make-overlay beg end nil nil t))
   (overlay-put lsp-inline-completion--overlay 'priority lsp-inline-completion-overlay-priority)
+  (internal-push-keymap lsp-inline-completion-active-map 'overriding-terminal-local-map)
 
   lsp-inline-completion--overlay)
 
@@ -291,7 +272,6 @@ The functions receive the text range that was updated by the completion."
     (overlay-put ov 'after-string after-str)
 
     (goto-char target-position)
-    (lsp-inline-completion-showing-mode +1)
 
     (run-hooks 'lsp-inline-completion-shown-hook)
 
@@ -336,7 +316,6 @@ The functions receive the text range that was updated by the completion."
      (error "Not showing suggestions"))
 
   (lsp-inline-completion--clear-overlay)
-  (lsp-inline-completion-showing-mode -1)
 
   (-let* ((suggestion (elt lsp-inline-completion--items lsp-inline-completion--current))
           ((&InlineCompletionItem? :insert-text :range? :command?) suggestion)
@@ -369,7 +348,6 @@ The functions receive the text range that was updated by the completion."
   (interactive)
   (let ((was-active (lsp-inline-completion--active-p)))
     (lsp-inline-completion--clear-overlay)
-    (lsp-inline-completion-showing-mode -1)
 
     (when was-active
       (goto-char lsp-inline-completion--start-point)
