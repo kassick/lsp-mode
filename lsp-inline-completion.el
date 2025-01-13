@@ -110,7 +110,7 @@ InlineCompletionItem objects"
 
 (defcustom lsp-inline-completion-accepted-functions nil
   "Functions executed after accepting a code suggestion.
-The functions receive the text range that was updated by the completion."
+The functions receive the inserted text and the range that was updated by the completion."
   :type 'hook
   :group 'lsp-mode)
 
