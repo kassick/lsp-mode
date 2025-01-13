@@ -114,6 +114,7 @@ The functions receive the inserted text and the range that was updated by the co
   :type 'hook
   :group 'lsp-mode)
 
+
 (defcustom lsp-inline-completion-cancelled-hook nil
   "Hooks executed after cancelling the completion UI."
   :type 'hook
@@ -151,16 +152,6 @@ The functions receive the inserted text and the range that was updated by the co
   (internal-pop-keymap lsp-inline-completion-active-map 'overriding-terminal-local-map))
 
 
-(defun lsp-inline-completion--get-overlay (beg end)
-  "Build the suggestions overlay."
-  (lsp-inline-completion--clear-overlay)
-
-  (setq lsp-inline-completion--overlay (make-overlay beg end nil nil t))
-  (overlay-put lsp-inline-completion--overlay 'priority lsp-inline-completion-overlay-priority)
-  (internal-push-keymap lsp-inline-completion-active-map 'overriding-terminal-local-map)
-
-  lsp-inline-completion--overlay)
-
 (defun lsp-inline-completion--show-keys ()
   "Shows active keymap hints in the minibuffer."
 
@@ -187,6 +178,19 @@ The functions receive the inserted text and the range that was updated by the co
                                        (string-join (--map (propertize (key-description it) 'face 'help-key-binding)
                                                            keys)
                                                     "/"))))))))
+
+
+(defun lsp-inline-completion--get-overlay (beg end)
+  "Build the suggestions overlay."
+  (lsp-inline-completion--clear-overlay)
+
+  (setq lsp-inline-completion--overlay (make-overlay beg end nil nil t))
+  (overlay-put lsp-inline-completion--overlay 'priority lsp-inline-completion-overlay-priority)
+  (internal-push-keymap lsp-inline-completion-active-map 'overriding-terminal-local-map)
+  (lsp-inline-completion--show-keys)
+
+  lsp-inline-completion--overlay)
+
 
 (defun lsp-inline-completion-show-overlay ()
   "Makes the suggestion overlay visible."
@@ -238,9 +242,7 @@ The functions receive the inserted text and the range that was updated by the co
 
     (goto-char target-position)
 
-    (run-hooks 'lsp-inline-completion-shown-hook)
-
-    (lsp-inline-completion--show-keys)))
+    (run-hooks 'lsp-inline-completion-shown-hook)))
 
 (defun lsp-inline-completion--insert-sugestion (text kind start end command?)
   (let* ((text-insert-start (or start lsp-inline-completion--start-point))
