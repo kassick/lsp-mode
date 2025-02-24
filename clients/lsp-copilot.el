@@ -293,7 +293,7 @@ parameters."
   "Builds and display the panel buffer"
   ;; TODO: maybe receive accept-fn / cancell-fn / copy-fn as parameters, so we
   ;; can use panel on other contexts...
-  (if (lsp-inline-completion--active-and-visible-p)
+  (if (lsp-inline-completion--active-p)
     (progn
       (message "Cancelling inlnie completion")
       (lsp-inline-completion-cancel)))
