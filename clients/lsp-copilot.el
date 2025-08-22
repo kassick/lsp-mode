@@ -407,6 +407,13 @@ automatically, browse to %s." user-code verification-uri))
 
   (lsp-copilot--panel-completions-progress-handler workspace params))
 
+(defun lsp-copilot--mcp-tools-notification (workspace params)
+  (-let* (((&copilot-ls:McpToolsNotification :servers) params)
+          (tools-str (s-join ", " servers)))
+    (if (s-present? tools-str)
+        (lsp--info "Copilot: Available MCP Tools: %s" tools-str)
+      (lsp--info "Copilot: No MCP tools available"))))
+
 (defun lsp-copilot--server-initialized-fn (workspace)
   ;; Patch capabilities -- server may respond with an empty dict. In plist,
   ;; this would become nil
@@ -444,6 +451,7 @@ automatically, browse to %s." user-code verification-uri))
                           ("featureFlagsNotification" #'ignore)
                           ("statusNotification" #'ignore)
                           ("didChangeStatus" #'ignore)
+                          ("copilot/mcpTools" #'lsp-copilot--mcp-tools-notification)
                           ("window/logMessage" #'lsp--window-log-message)
                           ("conversation/preconditionsNotification" #'ignore))))
 
