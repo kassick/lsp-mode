@@ -410,9 +410,8 @@ automatically, browse to %s." user-code verification-uri))
 (defun lsp-copilot--mcp-tools-notification (workspace params)
   (-let* (((&copilot-ls:McpToolsNotification :servers) params)
           (tools-str (s-join ", " servers)))
-    (if (s-present? tools-str)
-        (lsp--info "Copilot: Available MCP Tools: %s" tools-str)
-      (lsp--info "Copilot: No MCP tools available"))))
+    (when (s-present? tools-str)
+        (lsp--info "Copilot: Available MCP Tools: %s" tools-str))))
 
 (defun lsp-copilot--server-initialized-fn (workspace)
   ;; Patch capabilities -- server may respond with an empty dict. In plist,
