@@ -1,5 +1,6 @@
 * Changelog
 ** Unreleased 9.0.1
+  * Add explicit flag to enable (or disable) JSON validation.
   * Fix Accommodate renaming of lsp-postgres binaries
   * Fix =lsp-org= for org >= 9.7 (see #4300)
   * Add format on save support
@@ -49,6 +50,8 @@
   * Fix bug where persist was attempted when lsp-session-file is nil
   * Debugging tests in Rust no longer runs all the tests prior to launching debug session.
   * Add [[https://devenv.sh/][devenv]] and [[https://jj-vcs.github.io/jj/latest/][jj]] directories to the list of ignored directories (~lsp-file-watch-ignored-directories~)
+  * Fix bug where qmlls failed to load due to qml not being in ~lsp-language-id-configuration~
+  * Fix default value for ~lsp-rust-analyzer-cargo-cfgs~
 
 ** 9.0.0
   * Add language server config for QML (Qt Modeling Language) using qmlls.

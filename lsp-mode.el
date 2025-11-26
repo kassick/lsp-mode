@@ -810,6 +810,7 @@ Changes take effect only when a new session is started."
     ("\\.nu$" . "nushell")
     ("\\.php$" . "php")
     ("\\.ps[dm]?1\\'" . "powershell")
+    ("\\.qml$" . "qml")
     ("\\.rs\\'" . "rust")
     ("\\.spec\\'" . "rpm-spec")
     ("\\.sql$" . "sql")
@@ -1016,7 +1017,9 @@ Changes take effect only when a new session is started."
     (message-mode . "plaintext")
     (mu4e-compose-mode . "plaintext")
     (odin-mode . "odin")
-    (odin-ts-mode . "odin"))
+    (odin-ts-mode . "odin")
+    (qml-mode . "qml")
+    (qml-ts-mode . "qml"))
   "Language id configuration.")
 
 (defvar lsp--last-active-workspaces nil
@@ -6321,6 +6324,8 @@ one or more symbols, and STRUCTURE should be compatible with
     (toml-ts-mode               . toml-ts-mode-indent-offset)
     (typescript-mode            . typescript-indent-level)          ; Typescript
     (typescript-ts-mode         . typescript-ts-mode-indent-offset) ; Typescript (tree-sitter, Emacs29)
+    (tsx-mode                   . typescript-indent-level)          ; TSX
+    (tsx-ts-mode                . typescript-ts-mode-indent-offset) ; TSX (tree-sitter, Emacs29)
     (yaml-mode                  . yaml-indent-offset)               ; YAML
     (yang-mode                  . c-basic-offset)                   ; YANG (yang-mode)
 
