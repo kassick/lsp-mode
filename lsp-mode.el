@@ -1,10 +1,10 @@
 ;;; lsp-mode.el --- LSP mode                              -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2020-2025 emacs-lsp maintainers
+;; Copyright (C) 2020-2026 emacs-lsp maintainers
 
 ;; Author: Vibhav Pant, Fangrui Song, Ivan Yonchovski
 ;; Keywords: languages
-;; Package-Requires: ((emacs "28.1") (dash "2.18.0") (f "0.20.0") (ht "2.3") (spinner "1.7.3") (markdown-mode "2.3") (lv "0") (eldoc "1.11"))
+;; Package-Requires: ((emacs "28.1") (dash "2.18.0") (f "0.21.0") (ht "2.3") (spinner "1.7.3") (markdown-mode "2.3") (lv "0") (eldoc "1.11"))
 ;; Version: 9.0.1
 
 ;; URL: https://github.com/emacs-lsp/lsp-mode
@@ -180,19 +180,19 @@ As defined by the Language Server Protocol 3.16."
      lsp-dockerfile lsp-earthly lsp-elixir lsp-elm lsp-emmet lsp-erlang
      lsp-eslint lsp-fortran lsp-futhark lsp-fsharp lsp-gdscript lsp-gleam
      lsp-glsl lsp-go lsp-golangci-lint lsp-grammarly lsp-graphql lsp-groovy
-     lsp-hack lsp-haskell lsp-haxe lsp-idris lsp-java lsp-javascript lsp-jq
+     lsp-hack lsp-haskell lsp-haxe lsp-idris lsp-java lsp-javascript lsp-just lsp-jq
      lsp-json lsp-kotlin lsp-kubernetes-helm lsp-latex lsp-lisp lsp-ltex
      lsp-ltex-plus lsp-lua lsp-fennel lsp-magik lsp-markdown lsp-marksman
      lsp-matlab lsp-mdx lsp-meson lsp-metals lsp-mint lsp-mojo lsp-move lsp-mssql
      lsp-nextflow lsp-nginx lsp-nim lsp-nix lsp-nushell lsp-ocaml lsp-odin lsp-openscad
      lsp-pascal lsp-perl lsp-perlnavigator lsp-php lsp-pls lsp-postgres
      lsp-purescript lsp-pwsh lsp-pyls lsp-pylsp lsp-pyright lsp-python-ms lsp-python-ty
-     lsp-qml lsp-r lsp-racket lsp-remark lsp-rf lsp-roc lsp-roslyn lsp-rubocop
+     lsp-qml lsp-r lsp-racket lsp-remark lsp-rf lsp-roc lsp-ron lsp-roslyn lsp-rubocop
      lsp-ruby-lsp lsp-ruby-syntax-tree lsp-ruff lsp-rust lsp-semgrep lsp-shader
      lsp-solargraph lsp-solidity lsp-sonarlint lsp-sorbet lsp-sourcekit
      lsp-sql lsp-sqls lsp-steep lsp-svelte lsp-tailwindcss lsp-terraform
      lsp-tex lsp-tilt lsp-toml lsp-toml-tombi lsp-trunk lsp-ts-query lsp-ttcn3 lsp-typeprof
-     lsp-typespec lsp-typos lsp-v lsp-vala lsp-verilog lsp-vetur lsp-vhdl lsp-vimscript
+     lsp-typespec lsp-typst lsp-typos lsp-v lsp-vala lsp-verilog lsp-vetur lsp-vhdl lsp-vimscript
      lsp-volar lsp-wgsl lsp-xml lsp-yaml lsp-yang lsp-zig)
   "List of the clients to be automatically required."
   :group 'lsp-mode
@@ -847,6 +847,11 @@ Changes take effect only when a new session is started."
     (scala-ts-mode . "scala")
     (julia-mode . "julia")
     (julia-ts-mode . "julia")
+    (just-mode . "just")
+    (just-ts-mode . "just")
+    (typst-mode . "typst")
+    (typst-ts-mode . "typst")
+    ("\\.typ\\'" . "typst")
     (clojure-mode . "clojure")
     (clojurec-mode . "clojure")
     (clojurescript-mode . "clojurescript")
@@ -969,6 +974,7 @@ Changes take effect only when a new session is started."
     (perl-ts-mode . "perl")
     (robot-mode . "robot")
     (roc-ts-mode . "roc")
+    (ron-mode . "ron")
     (racket-mode . "racket")
     (nix-mode . "nix")
     (nix-ts-mode . "nix")
@@ -4204,12 +4210,13 @@ yet."
                                  more-trigger-character?)))))
 
 (defun lsp--update-on-type-formatting-hook (&optional cleanup?)
-  (let ((on-type-formatting-handler (lsp--on-type-formatting-handler-create)))
+  (when-let* ((on-type-formatting-handler
+               (and (or lsp-enable-on-type-formatting cleanup?)
+                    (lsp--on-type-formatting-handler-create))))
     (cond
-     ((and lsp-enable-on-type-formatting on-type-formatting-handler (not cleanup?))
+     ((and lsp-enable-on-type-formatting (not cleanup?))
       (add-hook 'post-self-insert-hook on-type-formatting-handler nil t))
-     ((or cleanup?
-          (not lsp-enable-on-type-formatting))
+     ((or cleanup? (not lsp-enable-on-type-formatting))
       (remove-hook 'post-self-insert-hook on-type-formatting-handler t)))))
 
 (defun lsp--signature-help-handler-create ()
@@ -4219,18 +4226,16 @@ yet."
       (lsp--maybe-enable-signature-help trigger-characters?))))
 
 (defun lsp--update-signature-help-hook (&optional cleanup?)
-  (let ((signature-help-handler (lsp--signature-help-handler-create)))
-    (cond
-     ((and (or (equal lsp-signature-auto-activate t)
-               (memq :on-trigger-char lsp-signature-auto-activate))
-           signature-help-handler
-           (not cleanup?))
-      (add-hook 'post-self-insert-hook signature-help-handler nil t))
-
-     ((or cleanup?
-          (not (or (equal lsp-signature-auto-activate t)
-                   (memq :on-trigger-char lsp-signature-auto-activate))))
-      (remove-hook 'post-self-insert-hook signature-help-handler t)))))
+  (let ((signature-auto-activate-p (or (equal lsp-signature-auto-activate t)
+                                       (memq :on-trigger-char lsp-signature-auto-activate))))
+    (when-let* ((signature-help-handler
+                 (and (or signature-auto-activate-p cleanup?)
+                      (lsp--signature-help-handler-create))))
+      (cond
+       ((and signature-auto-activate-p (not cleanup?))
+        (add-hook 'post-self-insert-hook signature-help-handler nil t))
+       ((or cleanup? (not signature-auto-activate-p))
+        (remove-hook 'post-self-insert-hook signature-help-handler t))))))
 
 (defun lsp--after-set-visited-file-name ()
   (lsp-disconnect)
@@ -5135,7 +5140,7 @@ Applies on type formatting."
       ("file"
        (xref-push-marker-stack)
        (find-file (lsp--uri-to-path url))
-       (-when-let ((_ line column) (s-match (rx "#" (group (1+ num)) (or "," "#") (group (1+ num))) url))
+       (-when-let ((_ line column) (s-match (rx "#" (optional "L") (group (1+ num)) (or "," "#") (group (1+ num))) url))
          (goto-char (lsp--position-to-point
                      (lsp-make-position :character (1- (string-to-number column))
                                         :line (1- (string-to-number line)))))))
@@ -5664,7 +5669,7 @@ MODE (car) is function which is defined in `lsp-language-id-configuration'.
 Cdr should be list of PROPERTY-LIST.
 
 Each PROPERTY-LIST should have properties:
-:regexp  Regexp which determines what string is relpaced to image.
+:regexp  Regexp which determines what string is replaced to image.
          You should also get information of image, by parenthesis constructs.
          By default, all matched string is replaced to image, but you can
          change index of replaced string by keyword :replaced-index.
@@ -7716,7 +7721,7 @@ corresponding to PATH, else returns `default-directory'."
 
 (defun lsp--fix-remote-cmd (program)
   "Helper for `lsp-stdio-connection'.
-Originally coppied from eglot."
+Originally copied from eglot."
 
   (if (file-remote-p default-directory)
       (list shell-file-name "-c"
