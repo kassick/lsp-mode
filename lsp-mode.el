@@ -179,7 +179,7 @@ As defined by the Language Server Protocol 3.16."
      lsp-clojure lsp-cmake lsp-cobol lsp-credo lsp-crystal lsp-csharp lsp-c3
      lsp-css lsp-copilot lsp-crates lsp-cucumber lsp-cypher lsp-d lsp-dart
      lsp-dhall lsp-docker lsp-dockerfile lsp-earthly lsp-elixir lsp-elm lsp-emmet
-     lsp-erlang lsp-eslint lsp-fortran lsp-futhark lsp-fsharp lsp-gdscript
+     lsp-erlang lsp-eslint lsp-fortitude lsp-fortran lsp-futhark lsp-fsharp lsp-gdscript
      lsp-gleam lsp-glsl lsp-go lsp-golangci-lint lsp-grammarly lsp-graphql
      lsp-groovy lsp-hack lsp-haskell lsp-haxe lsp-idris lsp-java lsp-javascript
      lsp-just lsp-jq lsp-json lsp-kotlin lsp-kubernetes-helm lsp-latex lsp-lisp
@@ -877,6 +877,7 @@ Changes take effect only when a new session is started."
     (clojure-ts-mode . "clojure")
     (clojure-ts-clojurec-mode . "clojure")
     (clojure-ts-clojurescript-mode . "clojurescript")
+    (edn-mode . "clojure")
     (java-mode . "java")
     (java-ts-mode . "java")
     (jdee-mode . "java")
@@ -1979,19 +1980,11 @@ On other systems, returns path without change."
 
 (defun lsp--uri-to-path-1 (uri)
   "Convert URI to a file path."
-  (let* ((url (url-generic-parse-url (url-unhex-string uri)))
+  (let* ((url (url-generic-parse-url uri))
          (type (url-type url))
-         (target (url-target url))
          (file
-          (concat (decode-coding-string (url-filename url)
-                                        (or locale-coding-system 'utf-8))
-                  (when (and target
-                             (not (s-match
-                                   (rx "#" (group (1+ num)) (or "," "#")
-                                       (group (1+ num))
-                                       string-end)
-                                   uri)))
-                    (concat "#" target))))
+          (decode-coding-string (url-unhex-string (url-filename url))
+                                        (or locale-coding-system 'utf-8)))
          (file-name (if (and type (not (string= type "file")))
                         (if-let* ((handler (lsp--get-uri-handler type)))
                             (funcall handler uri)
@@ -7074,24 +7067,31 @@ If nil, and `lsp-debounce-full-sync-notifications' is non-nil,
 
 (lsp-defun lsp--build-workspace-configuration-response ((&ConfigurationParams :items))
   "Get section configuration.
+If a section in the request is empty, all configuration items are returned.
 PARAMS are the `workspace/configuration' request params"
   (->> items
        (-map (-lambda ((&ConfigurationItem :section?))
-               (-let* ((path-parts (split-string section? "\\."))
-                       (path-without-last (s-join "." (-slice path-parts 0 -1)))
-                       (path-parts-len (length path-parts)))
-                 (cond
-                  ((<= path-parts-len 1)
-                   (ht-get (lsp-configuration-section section?)
-                           (car-safe path-parts)
-                           (ht-create)))
-                  ((> path-parts-len 1)
-                   (when-let* ((section (lsp-configuration-section path-without-last))
-                              (keys path-parts))
-                     (while (and keys section)
-                       (setf section (ht-get section (pop keys))))
-                     section))))))
+               (if section?
+                   (lsp--section-workspace-configuration section?)
+                 (lsp--default-workspace-configuration))))
        (apply #'vector)))
+
+(defun lsp--section-workspace-configuration (section-from-request)
+  "Get the configuration for the SECTION from the `workspace/configuration' request."
+  (-let* ((path-parts (split-string section-from-request "\\."))
+          (path-without-last (s-join "." (-slice path-parts 0 -1)))
+          (path-parts-len (length path-parts)))
+    (cond
+     ((<= path-parts-len 1)
+      (ht-get (lsp-configuration-section section-from-request)
+              (car-safe path-parts)
+              (ht-create)))
+     ((> path-parts-len 1)
+      (when-let* ((section (lsp-configuration-section path-without-last))
+                  (keys path-parts))
+        (while (and keys section)
+          (setf section (ht-get section (pop keys))))
+        section)))))
 
 (defun lsp--ms-since (timestamp)
   "Integer number of milliseconds since TIMESTAMP.  Fractions discarded."
@@ -8548,15 +8548,15 @@ nil."
 ;; https://docs.npmjs.com/files/folders#executables
 (cl-defun lsp--npm-dependency-path (&key package path &allow-other-keys)
   "Return npm dependency PATH for PACKAGE."
-  (let ((path (executable-find
-               (f-join lsp-server-install-dir "npm" package
-                       (cond ((eq system-type 'windows-nt) "")
-                             (t "bin"))
-                       path)
-               t)))
-    (unless (and path (f-exists? path))
+  (let ((path* (executable-find
+                (f-join lsp-server-install-dir "npm" package
+                        (cond ((eq system-type 'windows-nt) "")
+                              (t "bin"))
+                        path)
+                t)))
+    (unless path*
       (error "The package %s is not installed.  Unable to find %s" package path))
-    path))
+    path*))
 
 (cl-defun lsp--npm-dependency-install (callback error-callback &key package version &allow-other-keys)
   (if-let* ((npm-binary (executable-find "npm")))
@@ -9006,6 +9006,28 @@ TBL - a hash table, PATHS is the path to the nested VALUE."
                                  symbol-value)))
                    (when (or boolean? value)
                      (lsp-ht-set ret (s-split "\\." path) value)))))
+             lsp-client-settings)
+    ret))
+
+(defun lsp--default-workspace-configuration ()
+  "Get all defined settings."
+  (let ((ret (ht-create)))
+    (maphash (-lambda (path (variable boolean?))
+               ;; Trap any error to be safe, as in an older version of lsp-mode,
+               ;; when resolving the variable lsp-volar-get-typescript-tsdk-path,
+               ;; the following error was signaled:
+               ;; :package "typescript" :path "tsserver"
+               ;;  "The package typescript is not installed.  Unable to find nil"
+               (condition-case nil
+                   (let* ((symbol-value (-> variable
+                                            lsp-resolve-value
+                                            lsp-resolve-value))
+                          (value (if (and boolean? (not symbol-value))
+                                     :json-false
+                                   symbol-value)))
+                     (when (or boolean? value)
+                       (lsp-ht-set ret (s-split "\\." path) value)))
+                 (error nil)))
              lsp-client-settings)
     ret))
 
