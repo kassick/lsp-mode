@@ -4,7 +4,7 @@
 
 ;; Author: Vibhav Pant, Fangrui Song, Ivan Yonchovski
 ;; Keywords: languages
-;; Package-Requires: ((emacs "28.1") (dash "2.18.0") (f "0.21.0") (ht "2.3") (spinner "1.7.3") (markdown-mode "2.3") (lv "0") (eldoc "1.11"))
+;; Package-Requires: ((emacs "29.1") (dash "2.18.0") (f "0.21.0") (ht "2.3") (spinner "1.7.3") (markdown-mode "2.3") (lv "0") (eldoc "1.11"))
 ;; Version: 10.0.1
 
 ;; URL: https://github.com/emacs-lsp/lsp-mode
@@ -1530,7 +1530,11 @@ the lists according to METHOD."
                 (-filter #'identity results))
     (`() ())
     ;; only one result - simply return it
-    (`(,fst) fst)
+    (`(,fst) (pcase method
+               ("textDocument/completion"
+                (if (lsp-completion-list? fst) fst
+                  (lsp-make-completion-list :items fst :is-incomplete nil)))
+               (_ fst)))
     ;; multiple results merge it based on strategy
     (results
      (pcase method
